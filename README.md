@@ -86,7 +86,7 @@ $ brunch hammerhead
 
 # Get lxc
 
-https://jenkins.linuxcontainers.org/view/LXC/view/LXC builds/job/lxc-build-android/
+https://jenkins.linuxcontainers.org/view/LXC/view/LXC%20builds/job/lxc-build-android/
 
 deploy it to /data
 
