@@ -109,5 +109,30 @@ busybox mount -n -t cgroup -o none,name=freezer cgroup /sys/fs/cgroup/freezer/
 
 rm /data/lxc/containers/system/rootfs/etc/init/tty*.override
 
+```
+root@hammerhead:/data/lxc/lxc # lxc-start -n system
+root@hammerhead:/data/lxc/lxc # lxc-info -n system
+Name:           system
+State:          RUNNING
+PID:            4851
+Memory use:     3.29 MiB
+root@hammerhead:/data/lxc/lxc # lxc-console -n system
+
+Connected to tty 1
+Type <Ctrl+a q> to exit the console, <Ctrl+a Ctrl+a> to enter Ctrl+a itself
+
+Ubuntu Xenial Xerus (development branch) ubuntu-phablet tty1
+
+ubuntu-phablet login: phablet
+Last login: Fri Apr 30 09:16:34 UTC 1971 on lxc/tty1
+Welcome to Ubuntu Xenial Xerus (development branch) (GNU/Linux 3.4.0-cyanogenmod-g15e5a99-dirty armv7l)
+
+ * Documentation:  https://help.ubuntu.com/
+To run a command as administrator (user "root"), use "sudo <command>".
+See "man sudo_root" for details.
+
+phablet@ubuntu-phablet:~$
+```
+
 TODO: document further
 TODO: document milestones
