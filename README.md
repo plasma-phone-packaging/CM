@@ -96,5 +96,18 @@ TODO: figure out proper way..
 
 http://mobile.neon.pangea.pub:8080/job/img_phone_xenial_armhf/lastSuccessfulBuild/artifact/result/livecd..rootfs.tar.gz
 
+- Create /data/lxc/containers/system/ dir
+- Extract livecd..rootfs.tar.gz in /data/lxc/containers/system/rootfs/ dir
+- Mount systemd and freezer cgroup
+
+```
+mkdir /sys/fs/cgroup/systemd/
+busybox mount -n -t cgroup -o none,name=systemd cgroup /sys/fs/cgroup/systemd/
+mkdir /sys/fs/cgroup/freezer/
+busybox mount -n -t cgroup -o none,name=freezer cgroup /sys/fs/cgroup/freezer/
+```
+
+rm /data/lxc/containers/system/rootfs/etc/init/tty*.override
+
 TODO: document further
 TODO: document milestones
