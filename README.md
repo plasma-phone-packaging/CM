@@ -90,7 +90,7 @@ https://jenkins.linuxcontainers.org/view/LXC/view/LXC%20builds/job/lxc-build-and
 
 deploy it to /data
 
-TODO: figure out proper way..
+**TODO** : figure out proper way..
 
 # Create lxc container for pm rootfs
 
@@ -170,5 +170,10 @@ See "man sudo_root" for details.
 phablet@ubuntu-phablet:~$
 ```
 
-TODO: document further
-TODO: document milestones
+**TODO** : document libhybris build
+
+**TODO** : document further
+
+**TODO** : document milestones
+
+**TODO** : figure out deployment
