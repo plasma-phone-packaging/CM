@@ -2,12 +2,6 @@
 
 rebase on CyanogenMod
 
-# Current architecture of ubuntu touch
-
-![Ubuntu touch Architecture](ubuntu_touch_architecture.png)
-
-![Container Architecture](container.png)
-
 # Preparation
 
 - Get android/Cyanogenmod tree and setup devel env
@@ -90,8 +84,6 @@ https://jenkins.linuxcontainers.org/view/LXC/view/LXC%20builds/job/lxc-build-and
 
 deploy it to /data
 
-**TODO** : figure out proper way..
-
 # Create lxc container for pm rootfs
 
 http://mobile.neon.pangea.pub:8080/job/img_phone_xenial_armhf/lastSuccessfulBuild/artifact/result/livecd..rootfs.tar.gz
@@ -170,10 +162,4 @@ See "man sudo_root" for details.
 phablet@ubuntu-phablet:~$
 ```
 
-**TODO** : document libhybris build
-
 **TODO** : document further
-
-**TODO** : document milestones
-
-**TODO** : figure out deployment

@@ -1,0 +1,17 @@
+# this goes into /data/lxc/containers/system/config
+
+lxc.rootfs = /data/lxc/containers/system/rootfs
+lxc.utsname = armhf
+
+lxc.network.type = none
+lxc.mount.auto = cgroup
+
+lxc.devttydir = lxc
+lxc.tty = 4
+lxc.pts = 1024
+lxc.arch = armhf
+
+lxc.kmsg = 0
+# todo, bind only required stuff
+lxc.mount.entry = /dev dev/ none bind,optional,create=dir
+lxc.mount.entry = /system system/ none bind,optional,create=dir
