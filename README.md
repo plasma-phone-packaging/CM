@@ -98,18 +98,34 @@ http://mobile.neon.pangea.pub:8080/job/img_phone_xenial_armhf/lastSuccessfulBuil
 
 - Create /data/lxc/containers/system/ dir
 - Extract livecd..rootfs.tar.gz in /data/lxc/containers/system/rootfs/ dir
-- Mount systemd and freezer cgroup
+
+```
+rm /data/lxc/containers/system/rootfs/etc/init/tty*.override
+```
+
+- Mount systemd and freezer cgroups
 
 ```
 mkdir /sys/fs/cgroup/systemd/
 busybox mount -n -t cgroup -o none,name=systemd cgroup /sys/fs/cgroup/systemd/
 mkdir /sys/fs/cgroup/freezer/
 busybox mount -n -t cgroup -o none,name=freezer cgroup /sys/fs/cgroup/freezer/
+
+ROOTFS=/data/lxc/containers/system/rootfs
+for i in $(busybox awk '!/^#/ { if ($4 == 1) print $1 }' /proc/cgroups); do
+    if ! grep -q " $ROOTFS/$i " /proc/mounts; then
+        mkdir -p $ROOTFS/$i
+        busybox mount -n -t cgroup -o $i cgroup $ROOTFS/$i
+    fi
+done
+
 ```
 
-rm /data/lxc/containers/system/rootfs/etc/init/tty*.override
+Then start container
 
 ```
+export PATH=/data/lxc/lxc/bin:$PATH
+export LD_LIBRARY_PATH=/data/lxc/lxc/lib:$LD_LIBRARY_PATH
 root@hammerhead:/data/lxc/lxc # lxc-start -n system
 root@hammerhead:/data/lxc/lxc # lxc-info -n system
 Name:           system
