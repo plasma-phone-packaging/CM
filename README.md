@@ -103,6 +103,26 @@ http://mobile.neon.pangea.pub:8080/job/img_phone_xenial_armhf/lastSuccessfulBuil
 rm /data/lxc/containers/system/rootfs/etc/init/tty*.override
 ```
 
+- Create lxc config
+
+```
+root@hammerhead:/ # cat /data/lxc/containers/system/config
+lxc.rootfs = /data/lxc/containers/system/rootfs
+lxc.utsname = armhf
+
+lxc.network.type = none
+lxc.mount.auto = cgroup
+
+lxc.devttydir = lxc
+lxc.tty = 4
+lxc.pts = 1024
+lxc.arch = armhf
+
+lxc.kmsg = 0
+lxc.mount.entry = /dev dev/ none bind,optional,create=dir
+lxc.mount.entry = /system system/ none bind,optional,create=dir
+```
+
 - Mount systemd and freezer cgroups
 
 ```
