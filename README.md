@@ -103,7 +103,6 @@ lxc.rootfs = /data/lxc/containers/system/rootfs
 lxc.utsname = armhf
 
 lxc.network.type = none
-lxc.mount.auto = cgroup
 
 lxc.devttydir = lxc
 lxc.tty = 4
