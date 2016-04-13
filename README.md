@@ -88,7 +88,7 @@ deploy it to /data
 
 http://mobile.neon.pangea.pub:8080/job/img_phone_xenial_armhf/lastSuccessfulBuild/artifact/result/livecd..rootfs.tar.gz
 
-- Create /data/lxc/containers/system/ dir
+- Create /data/lxc/containers/system/rootfs/ dir
 - Extract livecd..rootfs.tar.gz in /data/lxc/containers/system/rootfs/ dir
 
 ```
@@ -160,5 +160,18 @@ See "man sudo_root" for details.
 
 phablet@ubuntu-phablet:~$
 ```
+
+# Bug: LXC container doesn't allow to console in 2nd time
+
+lxc-android-boot from lxc-android-config adds mount point for system and data partitions, however this breaks 2nd boot. To workaround,
+
+after stopping container,
+
+rm /data/lxc/containers/system/rootfs/etc/init/lxc-android-boot.conf
+vi /data/lxc/containers/system/rootfs/etc/fstab
+
+remove the all mount points that says added by lxc-android-boot except one with /vendor
+
+reboot phone
 
 **TODO** : document further
