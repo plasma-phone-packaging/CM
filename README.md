@@ -91,10 +91,6 @@ http://mobile.neon.pangea.pub:8080/job/img_phone_xenial_armhf/lastSuccessfulBuil
 - Create /data/lxc/containers/system/rootfs/ dir
 - Extract livecd..rootfs.tar.gz in /data/lxc/containers/system/rootfs/ dir
 
-```
-rm /data/lxc/containers/system/rootfs/etc/init/tty*.override
-```
-
 - Create lxc config
 
 ```
@@ -105,7 +101,6 @@ lxc.utsname = armhf
 lxc.network.type = none
 
 lxc.devttydir = lxc
-lxc.tty = 4
 lxc.pts = 1024
 lxc.arch = armhf
 
@@ -137,28 +132,24 @@ Then start container
 ```
 export PATH=/data/lxc/lxc/bin:$PATH
 export LD_LIBRARY_PATH=/data/lxc/lxc/lib:$LD_LIBRARY_PATH
-root@hammerhead:/data/lxc/lxc # lxc-start -n system
-root@hammerhead:/data/lxc/lxc # lxc-info -n system
-Name:           system
-State:          RUNNING
-PID:            4851
-Memory use:     3.29 MiB
-root@hammerhead:/data/lxc/lxc # lxc-console -n system
+root@hammerhead:/data/lxc/lxc # lxc-start -n system -F
+ * Setting up X socket directories...
+    ...done.
 
-Connected to tty 1
-Type <Ctrl+a q> to exit the console, <Ctrl+a Ctrl+a> to enter Ctrl+a itself
-
-Ubuntu Xenial Xerus (development branch) ubuntu-phablet tty1
+Ubuntu Xenial Xerus (development branch) ubuntu-phablet console
 
 ubuntu-phablet login: phablet
-Last login: Fri Apr 30 09:16:34 UTC 1971 on lxc/tty1
+Last login: Wed May 12 08:39:00 UTC 1971 on lxc/console
 Welcome to Ubuntu Xenial Xerus (development branch) (GNU/Linux 3.4.0-cyanogenmod-g15e5a99-dirty armv7l)
 
  * Documentation:  https://help.ubuntu.com/
-To run a command as administrator (user "root"), use "sudo <command>".
-See "man sudo_root" for details.
-
 phablet@ubuntu-phablet:~$
+```
+
+- To start plasma-phone
+
+```
+sudo service lightdm start
 ```
 
 # Bug: LXC container doesn't allow to console in 2nd time
