@@ -146,6 +146,15 @@ Welcome to Ubuntu Xenial Xerus (development branch) (GNU/Linux 3.4.0-cyanogenmod
 phablet@ubuntu-phablet:~$
 ```
 
+# graphics and input
+
+ACTION=="add|change", KERNEL=="event[0-9]*", GROUP="android_input", MODE="0660", ENV{ID_INPUT_KEY}="1"
+
+1. modify 65-android.rules udev rule as mentioned
+2. sudo service udev start
+3. sudo udevadm trigger --action=add
+4. sudo service lightdm start
+
 - To start plasma-phone
 
 ```
