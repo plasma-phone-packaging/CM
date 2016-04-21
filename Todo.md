@@ -6,5 +6,5 @@
 - [ ] Write utility like ubuntu-device-flash for easier deployment
 - [x] investigate why stopping container messes up things
 - [x] investigate why qt binaries crashes
-- [ ] investigate why input is not working
-- [ ] Remove surfaceflinger
+- [x] investigate why input is not working
+- [ ] Remove surfaceflinger, messes with kwin and results in flicker
