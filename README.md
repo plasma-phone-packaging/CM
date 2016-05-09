@@ -165,10 +165,14 @@ sudo service lightdm start
 
 lxc-android-boot from lxc-android-config adds mount point for system and data partitions, however this breaks 2nd boot. To workaround,
 
-after stopping container,
+after rebooting
 
+```
+adb root
+adb shell
 rm /data/lxc/containers/system/rootfs/etc/init/lxc-android-boot.conf
 vi /data/lxc/containers/system/rootfs/etc/fstab
+```
 
 remove the all mount points that says added by lxc-android-boot except one with /vendor
 
