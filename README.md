@@ -107,6 +107,7 @@ lxc.arch = armhf
 lxc.kmsg = 0
 lxc.mount.entry = /dev dev/ none bind,optional,create=dir
 lxc.mount.entry = /system system/ none bind,optional,create=dir
+lxc.mount.entry = /vendor vendor/ none bind,optional,create=dir
 ```
 
 - Mount systemd and freezer cgroups
