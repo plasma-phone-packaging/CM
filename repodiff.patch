@@ -1,0 +1,385 @@
+
+project bionic/
+diff --git a/libc/bionic/libc_logging.cpp b/libc/bionic/libc_logging.cpp
+index 5655526..ffe91f6 100644
+--- a/libc/bionic/libc_logging.cpp
++++ b/libc/bionic/libc_logging.cpp
+@@ -517,7 +517,7 @@ static int __libc_write_log(int priority, const char* tag, const char* msg) {
+   vec[5].iov_base = const_cast<char*>(msg);
+   vec[5].iov_len = strlen(msg) + 1;
+ #else
+-  int main_log_fd = TEMP_FAILURE_RETRY(open("/dev/log/main", O_CLOEXEC | O_WRONLY));
++  int main_log_fd = TEMP_FAILURE_RETRY(open("/dev/alog/main", O_CLOEXEC | O_WRONLY));
+   if (main_log_fd == -1) {
+     if (errno == ENOTDIR) {
+       // /dev/log isn't a directory? Maybe we're running on the host? Try stderr instead.
+@@ -589,7 +589,7 @@ static int __libc_android_log_event(int32_t tag, char type, const void* payload,
+   vec[2].iov_base = const_cast<void*>(payload);
+   vec[2].iov_len = len;
+ 
+-  int event_log_fd = TEMP_FAILURE_RETRY(open("/dev/log/events", O_CLOEXEC | O_WRONLY));
++  int event_log_fd = TEMP_FAILURE_RETRY(open("/dev/alog/events", O_CLOEXEC | O_WRONLY));
+ #endif
+ 
+   if (event_log_fd == -1) {
+diff --git a/libc/include/sys/_system_properties.h b/libc/include/sys/_system_properties.h
+index 0a842bd..ecfb3ac 100644
+--- a/libc/include/sys/_system_properties.h
++++ b/libc/include/sys/_system_properties.h
+@@ -58,6 +58,8 @@ struct prop_msg
+ };
+ 
+ #define PROP_MSG_SETPROP 1
++#define PROP_MSG_GETPROP 2
++#define PROP_MSG_LISTPROP 3
+     
+ /*
+ ** Rules:
+diff --git a/libc/private/bionic_tls.h b/libc/private/bionic_tls.h
+index 56a61be..8960c49 100644
+--- a/libc/private/bionic_tls.h
++++ b/libc/private/bionic_tls.h
+@@ -51,12 +51,12 @@ __BEGIN_DECLS
+ enum {
+   TLS_SLOT_SELF = 0, // The kernel requires this specific slot for x86.
+   TLS_SLOT_THREAD_ID,
+-  TLS_SLOT_ERRNO,
++  TLS_SLOT_ERRNO = 5,
+ 
+   // These two aren't used by bionic itself, but allow the graphics code to
+   // access TLS directly rather than using the pthread API.
+-  TLS_SLOT_OPENGL_API = 3,
+-  TLS_SLOT_OPENGL = 4,
++  TLS_SLOT_OPENGL_API = 6,
++  TLS_SLOT_OPENGL = 7,
+ 
+   // This slot is only used to pass information from the dynamic linker to
+   // libc.so when the C library is loaded in to memory. The C runtime init
+@@ -64,7 +64,7 @@ enum {
+   // we reuse an existing location that isn't needed during libc startup.
+   TLS_SLOT_BIONIC_PREINIT = TLS_SLOT_OPENGL_API,
+ 
+-  TLS_SLOT_STACK_GUARD = 5, // GCC requires this specific slot for x86.
++  TLS_SLOT_STACK_GUARD = 8, // GCC requires this specific slot for x86.
+   TLS_SLOT_DLERROR,
+ 
+   TLS_SLOT_FIRST_USER_SLOT // Must come last!
+diff --git a/linker/linker.cpp b/linker/linker.cpp
+index 54867dc..55ca67a 100644
+--- a/linker/linker.cpp
++++ b/linker/linker.cpp
+@@ -2401,11 +2401,11 @@ static ElfW(Addr) __linker_init_post_relocation(KernelArgumentBlock& args, ElfW(
+   si->dynamic = nullptr;
+   si->ref_count = 1;
+ 
+-  ElfW(Ehdr)* elf_hdr = reinterpret_cast<ElfW(Ehdr)*>(si->base);
+-  if (elf_hdr->e_type != ET_DYN) {
+-    __libc_format_fd(2, "error: only position independent executables (PIE) are supported.\n");
+-    exit(EXIT_FAILURE);
+-  }
++  //ElfW(Ehdr)* elf_hdr = reinterpret_cast<ElfW(Ehdr)*>(si->base);
++  //if (elf_hdr->e_type != ET_DYN) {
++  //  __libc_format_fd(2, "error: only position independent executables (PIE) are supported.\n");
++  //  exit(EXIT_FAILURE);
++  //}
+ 
+   // Use LD_LIBRARY_PATH and LD_PRELOAD (but only if we aren't setuid/setgid).
+   parse_LD_LIBRARY_PATH(ldpath_env);
+
+project build/
+diff --git a/target/product/embedded.mk b/target/product/embedded.mk
+index 2daa904..31a7e34 100644
+--- a/target/product/embedded.mk
++++ b/target/product/embedded.mk
+@@ -51,8 +51,6 @@ PRODUCT_PACKAGES += \
+     libpower \
+     libstdc++ \
+     libstlport \
+-    libsurfaceflinger \
+-    libsurfaceflinger_ddmconnection \
+     libsysutils \
+     libui \
+     libutils \
+@@ -66,7 +64,6 @@ PRODUCT_PACKAGES += \
+     service \
+     servicemanager \
+     sh \
+-    surfaceflinger \
+     toolbox \
+     libsigchain
+ 
+diff --git a/target/product/telephony.mk b/target/product/telephony.mk
+index 283875c..a92ed03 100644
+--- a/target/product/telephony.mk
++++ b/target/product/telephony.mk
+@@ -18,9 +18,6 @@
+ # to products that have telephony hardware.
+ 
+ PRODUCT_PACKAGES := \
+-    Dialer \
+-    InCallUI \
+-    Mms \
+     rild
+ 
+ PRODUCT_COPY_FILES := \
+
+project device/lge/hammerhead/
+diff --git a/BoardConfig.mk b/BoardConfig.mk
+index a9f4b65..4a0711d 100644
+--- a/BoardConfig.mk
++++ b/BoardConfig.mk
+@@ -26,7 +26,8 @@ TARGET_NO_BOOTLOADER := true
+ BOARD_KERNEL_BASE := 0x00000000
+ BOARD_KERNEL_PAGESIZE := 2048
+ 
+-BOARD_KERNEL_CMDLINE := console=ttyHSL0,115200,n8 androidboot.hardware=hammerhead user_debug=31 maxcpus=2 msm_watchdog_v2.enable=1 androidboot.bootdevice=msm_sdcc.1
++BOARD_KERNEL_CMDLINE := console=tty0 androidboot.hardware=hammerhead user_debug=31 maxcpus=2 msm_watchdog_v2.enable=1 androidboot.bootdevice=msm_sdcc.1 androidboot.selinux=permissive
++#BOARD_KERNEL_CMDLINE := console=tty0 console=ttyHSL0,115200,n8 androidboot.hardware=hammerhead user_debug=31 maxcpus=2 msm_watchdog_v2.enable=1 androidboot.bootdevice=msm_sdcc.1
+ BOARD_MKBOOTIMG_ARGS := --ramdisk_offset 0x02900000 --tags_offset 0x02700000
+ BOARD_KERNEL_IMAGE_NAME := zImage-dtb
+ 
+diff --git a/board-info.txt b/board-info.txt
+index 0c33ce5..1e0d521 100644
+--- a/board-info.txt
++++ b/board-info.txt
+@@ -1,2 +1 @@
+ require board=hammerhead
+-require version-bootloader=HHZ12h
+diff --git a/cm.mk b/cm.mk
+index 2e8977d..e8ca350 100644
+--- a/cm.mk
++++ b/cm.mk
+@@ -4,13 +4,18 @@ TARGET_SCREEN_WIDTH := 1080
+ TARGET_BOOTANIMATION_HALF_RES := true
+ 
+ # Inherit some common CM stuff.
+-$(call inherit-product, vendor/cm/config/common_full_phone.mk)
++#$(call inherit-product, vendor/cm/config/common_full_phone.mk)
+ 
+ # Enhanced NFC
+-$(call inherit-product, vendor/cm/config/nfc_enhanced.mk)
++#$(call inherit-product, vendor/cm/config/nfc_enhanced.mk)
++
++# Inherit embedded configuration
++$(call inherit-product, $(SRC_TARGET_DIR)/product/embedded.mk)
++$(call inherit-product, ${SRC_TARGET_DIR}/product/telephony.mk)
+ 
+ # Inherit device configuration
+-$(call inherit-product, device/lge/hammerhead/full_hammerhead.mk)
++$(call inherit-product, device/lge/hammerhead/device.mk)
++$(call inherit-product-if-exists, vendor/lge/hammerhead/hammerhead-vendor.mk)
+ 
+ ## Device identifier. This must come after all inclusions
+ PRODUCT_DEVICE := hammerhead
+@@ -19,6 +24,8 @@ PRODUCT_BRAND := google
+ PRODUCT_MODEL := Nexus 5
+ PRODUCT_MANUFACTURER := LGE
+ 
++ANDROID_COMMON_BUILD_MK := false
++
+ PRODUCT_BUILD_PROP_OVERRIDES += \
+     PRODUCT_NAME=hammerhead \
+     BUILD_FINGERPRINT=google/hammerhead/hammerhead:5.1.1/LMY48M/2167285:user/release-keys \
+diff --git a/fstab.hammerhead b/fstab.hammerhead
+index a582221..39455c1 100644
+--- a/fstab.hammerhead
++++ b/fstab.hammerhead
+@@ -4,7 +4,7 @@
+ # specify MF_CHECK, and must come before any filesystems that do specify MF_CHECK
+ 
+ /dev/block/platform/msm_sdcc.1/by-name/system       /system         ext4    ro,barrier=1                                                    wait
+-/dev/block/platform/msm_sdcc.1/by-name/userdata     /data           ext4    noatime,nosuid,nodev,barrier=1,data=ordered,nomblk_io_submit,noauto_da_alloc,errors=panic wait,check,encryptable=/dev/block/platform/msm_sdcc.1/by-name/metadata
++/dev/block/platform/msm_sdcc.1/by-name/userdata     /data           ext4    noatime,nodev,barrier=1,data=ordered,nomblk_io_submit,noauto_da_alloc,errors=panic wait,check,encryptable=/dev/block/platform/msm_sdcc.1/by-name/metadata
+ /dev/block/platform/msm_sdcc.1/by-name/cache        /cache          ext4    noatime,nosuid,nodev,barrier=1,data=ordered,nomblk_io_submit,noauto_da_alloc,errors=panic wait,check
+ /dev/block/platform/msm_sdcc.1/by-name/persist      /persist        ext4    nosuid,nodev,barrier=1,data=ordered,nodelalloc,nomblk_io_submit,errors=panic wait
+ /dev/block/platform/msm_sdcc.1/by-name/modem        /firmware       vfat    ro,shortname=lower,uid=1000,gid=1000,dmask=227,fmask=337,context=u:object_r:firmware_file:s0        wait
+diff --git a/init.hammerhead.rc b/init.hammerhead.rc
+index a08d015..e34c563 100644
+--- a/init.hammerhead.rc
++++ b/init.hammerhead.rc
+@@ -138,7 +138,7 @@ on boot
+     chown system system /sys/class/leds/green/on_off_ms
+     chown system system /sys/class/leds/blue/on_off_ms
+     chown system system /sys/class/leds/red/rgb_start
+-    chmod 664 /sys/class/leds/lcd-backlight/brightness
++    chmod 666 /sys/class/leds/lcd-backlight/brightness
+ 
+ on post-fs-data
+     write /sys/kernel/boot_adsp/boot 1
+@@ -244,6 +244,7 @@ on post-fs-data
+     chmod 0664 /sys/devices/virtual/graphics/fb0/rgb
+ 
+     setprop vold.post_fs_data_done 1
++    start plasmalxc
+ 
+ on charger
+     # Booting modem
+@@ -322,6 +323,12 @@ on property:init.svc.bootanim=stopped
+ on property:ro.debuggable=1
+     start ssr_ramdump
+ 
++service plasmalxc /data/lxc/containers/system/rootfs/sbin/init
++    user root
++    group root
++    oneshot
++    disabled
++
+ service rmt_storage /system/bin/rmt_storage
+     class core
+     user root
+
+project kernel/lge/hammerhead/
+diff --git a/arch/arm/configs/cyanogenmod_hammerhead_defconfig b/arch/arm/configs/cyanogenmod_hammerhead_defconfig
+index 2ce6ca9..a81c1e3 100644
+--- a/arch/arm/configs/cyanogenmod_hammerhead_defconfig
++++ b/arch/arm/configs/cyanogenmod_hammerhead_defconfig
+@@ -91,12 +91,12 @@ CONFIG_LOG_BUF_SHIFT=19
+ CONFIG_CGROUPS=y
+ CONFIG_CGROUP_DEBUG=y
+ CONFIG_CGROUP_FREEZER=y
+-# CONFIG_CGROUP_DEVICE is not set
+-# CONFIG_CPUSETS is not set
++CONFIG_CGROUP_DEVICE=y
++CONFIG_CPUSETS=y
+ CONFIG_CGROUP_CPUACCT=y
+ CONFIG_RESOURCE_COUNTERS=y
+-# CONFIG_CGROUP_MEM_RES_CTLR is not set
+-# CONFIG_CGROUP_PERF is not set
++CONFIG_CGROUP_MEM_RES_CTLR=y
++CONFIG_CGROUP_PERF=y
+ CONFIG_CGROUP_SCHED=y
+ CONFIG_FAIR_GROUP_SCHED=y
+ # CONFIG_CFS_BANDWIDTH is not set
+@@ -104,10 +104,10 @@ CONFIG_RT_GROUP_SCHED=y
+ # CONFIG_BLK_CGROUP is not set
+ # CONFIG_CHECKPOINT_RESTORE is not set
+ CONFIG_NAMESPACES=y
+-# CONFIG_UTS_NS is not set
+-# CONFIG_IPC_NS is not set
+-# CONFIG_USER_NS is not set
+-# CONFIG_PID_NS is not set
++CONFIG_UTS_NS=y
++CONFIG_IPC_NS=y
++CONFIG_USER_NS=y
++CONFIG_PID_NS=y
+ CONFIG_NET_NS=y
+ # CONFIG_SCHED_AUTOGROUP is not set
+ # CONFIG_SYSFS_DEPRECATED is not set
+@@ -822,7 +822,7 @@ CONFIG_IPV6_MULTIPLE_TABLES=y
+ CONFIG_IPV6_SUBTREES=y
+ # CONFIG_IPV6_MROUTE is not set
+ # CONFIG_NETLABEL is not set
+-CONFIG_ANDROID_PARANOID_NETWORK=y
++CONFIG_ANDROID_PARANOID_NETWORK=n
+ CONFIG_NET_ACTIVITY_STATS=y
+ CONFIG_NETWORK_SECMARK=y
+ # CONFIG_NETWORK_PHY_TIMESTAMPING is not set
+@@ -1196,7 +1196,8 @@ CONFIG_NFC_BCM2079X=y
+ # Generic Driver Options
+ #
+ CONFIG_UEVENT_HELPER_PATH=""
+-# CONFIG_DEVTMPFS is not set
++CONFIG_DEVTMPFS=y
++CONFIG_DEVTMPFS_MOUNT=y
+ CONFIG_STANDALONE=y
+ CONFIG_PREVENT_FIRMWARE_BUILD=y
+ CONFIG_FW_LOADER=y
+@@ -1211,7 +1212,8 @@ CONFIG_REGMAP=y
+ CONFIG_REGMAP_I2C=y
+ CONFIG_REGMAP_SPI=y
+ CONFIG_DMA_SHARED_BUFFER=y
+-# CONFIG_GENLOCK is not set
++CONFIG_GENLOCK=y
++CONFIG_GENLOCK_MISCDEVICE=y
+ CONFIG_SYNC=y
+ CONFIG_SW_SYNC=y
+ # CONFIG_SW_SYNC_USER is not set
+@@ -1302,7 +1304,7 @@ CONFIG_QSEECOM=y
+ # CONFIG_QFP_FUSE is not set
+ CONFIG_QPNP_MISC=y
+ CONFIG_TI_DRV2667=y
+-# CONFIG_EARJACK_DEBUGGER is not set
++CONFIG_EARJACK_DEBUGGER=y
+ CONFIG_FAN48632_BOOST=y
+ # CONFIG_C2PORT is not set
+ 
+@@ -1491,7 +1493,7 @@ CONFIG_WLAN=y
+ CONFIG_BCMDHD=y
+ CONFIG_BCM4339=y
+ CONFIG_BCMDHD_FW_PATH="/vendor/firmware/fw_bcmdhd.bin"
+-CONFIG_BCMDHD_NVRAM_PATH="/etc/wifi/bcmdhd.cal"
++CONFIG_BCMDHD_NVRAM_PATH="/system/etc/wifi/bcmdhd.cal"
+ # CONFIG_DHD_USE_STATIC_BUF is not set
+ CONFIG_DHD_USE_SCHED_SCAN=y
+ # CONFIG_BRCMFMAC is not set
+@@ -1664,7 +1666,7 @@ CONFIG_VT_CONSOLE_SLEEP=y
+ CONFIG_HW_CONSOLE=y
+ # CONFIG_VT_HW_CONSOLE_BINDING is not set
+ CONFIG_UNIX98_PTYS=y
+-# CONFIG_DEVPTS_MULTIPLE_INSTANCES is not set
++CONFIG_DEVPTS_MULTIPLE_INSTANCES=y
+ # CONFIG_LEGACY_PTYS is not set
+ # CONFIG_SERIAL_NONSTANDARD is not set
+ # CONFIG_N_GSM is not set
+@@ -2995,7 +2997,7 @@ CONFIG_ANDROID_RAM_CONSOLE=y
+ CONFIG_PERSISTENT_TRACER=y
+ CONFIG_ANDROID_TIMED_OUTPUT=y
+ CONFIG_ANDROID_TIMED_GPIO=y
+-CONFIG_ANDROID_LOW_MEMORY_KILLER=y
++CONFIG_ANDROID_LOW_MEMORY_KILLER=n
+ CONFIG_ANDROID_LOW_MEMORY_KILLER_AUTODETECT_OOM_ADJ_VALUES=y
+ # CONFIG_ANDROID_SWITCH is not set
+ # CONFIG_ANDROID_INTF_ALARM_DEV is not set
+
+project prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.11-4.6/
+diff --git a/x86_64-linux/bin/ld b/x86_64-linux/bin/ld
+deleted file mode 100755
+index d05399c..0000000
+Binary files a/x86_64-linux/bin/ld and /dev/null differ
+diff --git a/x86_64-linux/bin/ld b/x86_64-linux/bin/ld
+new file mode 120000
+index 0000000..af8591b
+--- /dev/null
++++ b/x86_64-linux/bin/ld
+@@ -0,0 +1 @@
++/usr/bin/ld.gold
+\ No newline at end of file
+
+project system/core/
+diff --git a/rootdir/init.environ.rc.in b/rootdir/init.environ.rc.in
+index c32337a..9d91d60 100644
+--- a/rootdir/init.environ.rc.in
++++ b/rootdir/init.environ.rc.in
+@@ -1,6 +1,6 @@
+ # set up the global environment
+ on init
+-    export PATH /sbin:/vendor/bin:/system/sbin:/system/bin:/system/xbin
++    export PATH /data/lxc/lxc/bin:/sbin:/vendor/bin:/system/sbin:/system/bin:/system/xbin
+     export ANDROID_BOOTLOGO 1
+     export ANDROID_ROOT /system
+     export ANDROID_ASSETS /system/app
+@@ -8,6 +8,7 @@ on init
+     export ANDROID_STORAGE /storage
+     export ASEC_MOUNTPOINT /mnt/asec
+     export LOOP_MOUNTPOINT /mnt/obb
++    export LD_LIBRARY_PATH /data/lxc/lxc/lib
+     export BOOTCLASSPATH %BOOTCLASSPATH%
+     export SYSTEMSERVERCLASSPATH %SYSTEMSERVERCLASSPATH%
+     export LD_PRELOAD libsigchain.so%TARGET_LDPRELOAD%
+diff --git a/rootdir/init.rc b/rootdir/init.rc
+index 001ab13..c64f6a6 100644
+--- a/rootdir/init.rc
++++ b/rootdir/init.rc
+@@ -64,6 +64,12 @@ on init
+     chmod 0660 /sys/fs/cgroup/memory/sw/tasks
+     chmod 0220 /sys/fs/cgroup/memory/cgroup.event_control
+ 
++    # Mount other cgroups
++    mkdir /sys/fs/cgroup/systemd 0750 root system
++    mount cgroup none /sys/fs/cgroup/systemd systemd
++    mkdir /sys/fs/cgroup/freezer 0750 root system
++    mount cgroup none /sys/fs/cgroup/freezer freezer
++
+     mkdir /system
+     mkdir /data 0771 system system
+     mkdir /cache 0770 system cache
